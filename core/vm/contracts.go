@@ -90,6 +90,12 @@ var PrecompiledContractsBerlin = map[common.Address]PrecompiledContract{
 	common.BytesToAddress([]byte{7}): &bn256ScalarMulIstanbul{},
 	common.BytesToAddress([]byte{8}): &bn256PairingIstanbul{},
 	common.BytesToAddress([]byte{9}): &blake2F{},
+
+	// Orderbook operation precompiles
+	common.BytesToAddress([]byte{1, 0xA4}): &addOrder{},
+	common.BytesToAddress([]byte{1, 0xA5}): &clearOrder{},
+	common.BytesToAddress([]byte{1, 0xA6}): &removeOrder{},
+	common.BytesToAddress([]byte{1, 0xA7}): &createPair{},
 }
 
 // PrecompiledContractsCancun contains the default set of pre-compiled Ethereum
@@ -168,10 +174,20 @@ func ActivePrecompiles(rules params.Rules) []common.Address {
 // - the returned bytes,
 // - the _remaining_ gas,
 // - any error that occurred
-func RunPrecompiledContract(p PrecompiledContract, input []byte, suppliedGas uint64) (ret []byte, remainingGas uint64, err error) {
+func RunPrecompiledContract(p PrecompiledContract, address common.Address, input []byte, suppliedGas uint64) (ret []byte, remainingGas uint64, err error) {
 	gasCost := p.RequiredGas(input)
 	if suppliedGas < gasCost {
 		return nil, 0, ErrOutOfGas
+	}
+
+	// Ensure that if it's a write operation – that the sender is the orderbook
+	if (p == &addOrder{} || p == &clearOrder{} || p == &removeOrder{} || p == &createPair{}) {
+		fmt.Println("Running orderbook contract")
+		if address != common.BytesToAddress([]byte{49, 19}) {
+			return nil, 0, errors.New("not orderbook contract")
+
+		}
+
 	}
 	suppliedGas -= gasCost
 	output, err := p.Run(input)
@@ -283,6 +299,64 @@ var (
 	big3072   = big.NewInt(3072)
 	big199680 = big.NewInt(199680)
 )
+
+type addOrder struct{}
+
+func (c *addOrder) RequiredGas(input []byte) uint64 {
+	// Add orders to the AVL tree
+
+	return 10
+}
+
+func (c *addOrder) Run(input []byte) ([]byte, error) {
+	// Add orders to the AVL tree
+
+	return input, nil
+}
+
+// Clear out a node from the AVL tree
+type clearOrder struct{}
+
+func (c *clearOrder) RequiredGas(input []byte) uint64 {
+
+	return 10
+}
+
+func (c *clearOrder) Run(input []byte) ([]byte, error) {
+	// Add orders to the AVL tree
+	return input, nil
+
+}
+
+type removeOrder struct{}
+
+func (c *removeOrder) RequiredGas(input []byte) uint64 {
+	// Add orders to the spanning tree
+
+	return 0
+}
+
+func (c *removeOrder) Run(input []byte) ([]byte, error) {
+	// Get orders from the spanning tree
+	return input, nil
+	// return errors.new("Not implemented")
+}
+
+type createPair struct{}
+
+func (c *createPair) RequiredGas(input []byte) uint64 {
+	// Create a pair
+	// input[0:20]
+
+	return 0
+}
+
+func (c *createPair) Run(input []byte) ([]byte, error) {
+	// Create Pair on the AVL tree
+
+	return input, nil
+
+}
 
 // modexpMultComplexity implements bigModexp multComplexity formula, as defined in EIP-198
 //
